@@ -19,7 +19,8 @@
 
 int WIDTH, HEIGHT;
 
-static char *screen[] = {
+static char *screen[] = 
+{
 "                                   Lives:",
 "/------\\          /------\\          /------\\          /------\\          /------\\",
 "|      |          |      |          |      |          |      |          |      |",
@@ -44,6 +45,13 @@ static char *screen[] = {
 "",
 "", 
 "" };
+
+static char *wood[] = 
+{
+	"/-------------\\",
+	"|             |",
+ "\\-------------/"
+};
 
 static int SCREEN_ROWS = 24; /* must match the template above for proper background drawing */
 
@@ -83,6 +91,7 @@ int screen_init(int height, int width) {
         
     if (status) {
 			screen_draw_image(0, 0, screen, SCREEN_ROWS);
+			screen_draw_image(4, 0, wood, 3);
 			screen_refresh();
 	  }
    
@@ -143,7 +152,7 @@ void screen_refresh(void) {
     refresh();
 }
 
-screen_fini(void) {
+void screen_fini(void) {
     endwin();
 }
 
