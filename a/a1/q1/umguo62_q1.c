@@ -7,6 +7,8 @@
 
 #define CASE_SHIFT 32
 
+static const char cat_str[] = {'C','A','T'};
+
 int main(int argc, char *argv[])
 {
 	//pipe file descriptor
@@ -15,7 +17,6 @@ int main(int argc, char *argv[])
 	int file_dec = open("raw.log", O_WRONLY);	
 
   int ret_signal = -1;
-	char cat_str[3] = {'C','A','T'};
 	char cat_origin_str[3];
 	int cat_index = 0;
 	
@@ -24,6 +25,7 @@ int main(int argc, char *argv[])
     perror("pipe");
     exit(EXIT_FAILURE);
   }
+
   int pid = fork();
 
 	//check fork error
@@ -59,6 +61,7 @@ int main(int argc, char *argv[])
 			}
 
 		}
+
 		close(pfd[0]);
 		write(file_dec, "\n", 1);
 		close(file_dec);
@@ -77,4 +80,5 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	return 0;
 }
