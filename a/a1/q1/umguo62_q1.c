@@ -1,84 +1,84 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <sys/wait.h>
 #include <fcntl.h>
-#include <assert.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
 
-#define CASE_SHIFT 32
+#define READ_FD 0
+#define WRITE_FD 1
 
-static const char cat_str[] = {'C','A','T'};
+typedef enum { false, true } bool;
+
+static pid_t pid;
+static int pipefd[2];
+static sig_atomic_t isRunning = true;
+static int logfile;
+
+static void sigHandle(int sigNum)
+{
+	if (SIGTERM == sigNum)
+		isRunning = false;
+}
+
+static void closeFiles()
+{
+	close(logfile);
+	close(pipefd[READ_FD]);
+	close(pipefd[WRITE_FD]);
+}
+
+static void handleError(int ret, const char *msg)
+{
+	if(ret != -1)
+		return;
+	perror(msg);
+	closeFiles();
+	exit(EXIT_FAILURE);
+}
+
+void doOutput(int file, char data) {
+	write(file, &data, 1);
+}
 
 int main(int argc, char *argv[])
 {
-	//pipe file descriptor
-  int pfd[2];	
-	char buf;
-	int file_dec = open("raw.log", O_WRONLY);	
+	logfile = open("log", O_WRONLY | O_CREAT | O_TRUNC, 0700);
+	signal(SIGTERM, sigHandle);
+	handleError(pipe(pipefd), "Pipe Error");
+	printf("Program Starts\n");
 
-  int ret_signal = -1;
-	char cat_origin_str[3];
-	int cat_index = 0;
-	
-  if(-1 == pipe(pfd)) 
-  {
-    perror("pipe");
-    exit(EXIT_FAILURE);
-  }
+	//handleError(dup2(logfile, STDERR_FILENO), "Log File Error");
+	pid = fork();
 
-  int pid = fork();
+	if(pid == 0)
+	{
 
-	//check fork error
-  if(-1 == pid)
-  {
-		perror("fork");
-		exit(EXIT_FAILURE);	   
-  }
-	
-  if(0 != pid) 
-  { //parent process
-
-		close(pfd[1]); //write end is not needed	
-		while(read(pfd[0], &buf, 1)>0)
-		{
-			write(file_dec, &buf, 1);
-			if(buf == cat_str[cat_index] || buf == (cat_str[cat_index]+CASE_SHIFT))
-			{
-				cat_origin_str[cat_index] = buf;
-				cat_index++;
-				if(cat_index>2)
-				{	
-					write(STDOUT_FILENO, "dog", 3);
-					cat_index = 0;
-				}
-			}
-			else
-			{	
-				assert(cat_index <3);
-				write(STDOUT_FILENO, cat_origin_str, cat_index);
-				cat_index = 0;
-				write(STDOUT_FILENO, &buf, 1);
-			}
-
-		}
-
-		close(pfd[0]);
-		write(file_dec, "\n", 1);
-		close(file_dec);
-  } 
-	else
-	{ //child process
-		close(pfd[0]); //read end is not needed
-  	
-		//link standard output to write end of pipe
-		dup2(pfd[1], STDOUT_FILENO); 	
-		ret_signal = execv(argv[1], argv);
-		if(-1 == ret_signal)
-		{
-			write(STDOUT_FILENO, "Error\n", 6);
-			close(pfd[1]);
-		}
+		close(pipefd[READ_FD]);
+		//Child write standard output to pipe
+		//dup2(logfile, STDOUT_FILENO);
+		dup2(pipefd[WRITE_FD], STDOUT_FILENO);
+		execv(argv[1], &argv[1]);
+		perror("Error");
 	}
+	else
+	{
+		int data;
+
+		close(pipefd[WRITE_FD]);
+
+		while(isRunning && read(pipefd[READ_FD], &data, 1) >0)
+			doOutput(STDOUT_FILENO, (char)data);
+
+		printf("Main Finished\n");
+		kill(pid, SIGTERM);
+		waitpid(pid, NULL, 0); 
+		close(pipefd[READ_FD]);
+	}
+	
+	closeFiles();
 
 	return 0;
 }
