@@ -1,5 +1,5 @@
-CC = clang
-CFLAGS = -g -Wall
+CC = gcc
+CFLAGS = -Wall -g 
 HDRS = protocol.h
 SERVER_OBJS = prime_server.o protocol.o
 CLIENT_OBJS = prime_client.o protocol.o

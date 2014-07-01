@@ -1,114 +1,105 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <string.h>
 #include "protocol.h"
-#include <assert.h>
 
-#define MODE 0622
+static int id = -1;
+static char client_fifo[13];
+static sig_atomic_t isRunning = false;
 
-static int client_id;
-static char file_client[32];
-void terminate(int sig)
-{		
-	if(sig == SIGTERM || sig == SIGINT)
+void handleSigTerm(int sig)
+{
+
+	printf("terminate program\n");
+	if(SIGINT == sig)
+		isRunning = false;
+}
+
+void requestPrime()
+{
+	struct PACKET packet;
+	sprintf(packet.header, "!%dR", id);
+	sprintf(packet.data, "?");
+	sendPacket(&packet, SERVER_FIFO);
+}
+
+void sendPrime(int number)
+{
+	struct PACKET packet;
+	printf("Send Prime\n");
+	sprintf(packet.header, "!%dP", id);
+	sprintf(packet.data, "%d?", number);
+	
+	sendPacket(&packet, SERVER_FIFO);
+}
+
+int recvQuery()
+{
+	struct PACKET packet;
+	printf("Received Query\n");
+	recvPacket(&packet, client_fifo);
+	char sender;
+	int number = -1;
+
+	if(packet.header[2] != 'Q')
 	{
-		printf("\nExiting......\n");
-		unlink(fifo_client);
-		exit(1);
+		printf("Packet not Query: %s", packet.header);
+		return -1;
+	}
+	sscanf(packet.header, "!%cQ", &sender);
+	if(sender != '#')
+	{
+		printf("Wrong Packet Sender: %c", sender);
+		return -1;
 	}
 
-}
-
-void setup()
-{
-	signal(SIGINT, terminate);
-	signal(SIGTERM, terminate);
-	sprintf(file_client, "%s%d", CLIENT_FIFO, clientid);
-	mkfifo(file_client, MODE); 
-}
-
-void run_client()
-{
-	int fifo_client;
-	int fifo_server;
-	int byte;
-
-	char const * msg;
-	Protocol packet;
-
-	while(true)
+	if(sscanf(packet.data, "%d?", &number) != 1)
 	{
-		out_msg = create_msg(REQUES, 0, client_id);
-		fifo_server = open(SERVER_FIFO, O_WRONLY);
-		write(fifo_server, out_msg, strlen(msg));
-		close(fifo_server);
-		
-		init_protocol(&packet);
-		fifo_client = open(CLIENT_FIFO, O_RDONLY);
-		while(!packet.ready)
-		{
-			read(fifo_client, &byte, 1);
-			load_protocol(byte, &packet);
-		}
-		close(fifo_client);
-		if(checkPrime(packet.data))
-		{
-			out_msg = create_msg(POST, packet.data, client_id);
-			fifo_server = open(SERVER_FIFO, O_WRONLY);
-			write(fifo_server, out_msg, strlen(msg));
-			close(fifo_server);
-
-		}
+		printf("Fail to convert data: %s", packet.data);
+		return -1;
 	}
+
+	return number;
 }
 
-bool checkPrime(int number)
+bool isPrime(int number)
 {
-	if(number == 1)
+	int i;
+	if(number <= 1)
 		return false;
-	for(int i=2; i<number; i++)
+
+	for(i=2; i<number; i++)
 	{
 		if(number%i ==0)
 			return false;
 	}
+
 	return true;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
-	int opt;
-	p_ptr = malloc(sizeof(Protocol));
+	id = 0;
+	int ret = -1;
+	int number = -1;
+	isRunning = true;
+	
+	signal(SIGINT, handleSigTerm);
 
-	//set signal handler to handle Terminated signal	
-	if(!)
-		exit(0);
+	sprintf(client_fifo, "primeclient%d", id);
+	ret = mkfifo(client_fifo, 0666);
+	checkError(ret, "FIFO");
+	
+	printf("Client %d running\n", id);
 
-	if(argc <2)
-		perror("usage: <pgm> -<client-id>");
-
-	if((opt = getopt(argc, argv, "c:")) == -1)
+	while(isRunning)
 	{
-		perror("Fail to get Option\n");
-		exit(0);
-	}
-		
-	switch(opt)
-	{
-		case 'c':
-			client_id = atoi(optarg);
-	}		
-	if(access(SERVER_FIFO, F_OK)==-1)
-	{
-		perror("Can not access server\n");	
-		exit(0);
+		sleep(1);
+		requestPrime();
+		number = recvQuery();
+		if(number != -1 && isPrime(number))
+			sendPrime(number);
 	}
 
-	setup();
-	run_client();
+	cleanUp(client_fifo);	
 		
+	return 0;
 }
+

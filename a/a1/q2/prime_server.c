@@ -1,38 +1,73 @@
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <assert.h>
 #include "protocol.h"
-#include <sys/wait.h>
 
-#define MODE 0622  //r---w--w-
+static char client_fifo[13];
+static int maxPrime = -1;
+static int checkNumber = 0;
+static sig_atomic_t isRunning = false;
 
-void handler(int sig)
+void handleSigTerm(int sig)
 {
+	printf("terminate program\n");
+	if(SIGINT == sig)
+		isRunning = false;
+}
 
-	if(sig == SIGTERM || sig == SIGINT)
+void sendQuery(struct PACKET *pPack)
+{
+	int client_id;
+	checkNumber++;
+	sscanf(pPack->header, "!%dR", &client_id);
+	sprintf(client_fifo, "primeclient%d", client_id);
+
+	struct PACKET packet;
+	sprintf(packet.header, "!#Q");
+	sprintf(packet.data, "%d?", checkNumber);
+	sendPacket(&packet, client_fifo);
+}
+
+void recordPrime(struct PACKET *pPack)
+{
+	int newPrime =-1;
+	sscanf(pPack->data, "%d?", &newPrime);
+	printf("new Prime %d\n", newPrime);
+	if(newPrime >maxPrime)
 	{
-		printf("\nExiting......\n");
-		unlink(SERVER_FIFO);
-		exit(1);
+		maxPrime = newPrime;
+		printf("Current max prime: %d\n", maxPrime);
 	}
-
 }
 
-void setup()
+int main(int argc, char **argv)
 {
-	signal(SIGINT, handler);
-	signal(SIGTERM, handler);	
-	mkfifo(SERVER_FIFO, MODE); 
-}
 
-void run_server()
-{
+	isRunning = true;
+	int ret = -1;
+
+	signal(SIGINT, handleSigTerm);
+
+	ret = mkfifo(SERVER_FIFO, 0666);
+	checkError(ret, "FIFO");
+	struct PACKET packet;
+	while(isRunning && checkNumber <5000000)
+	{
+		sleep(1);
+		recvPacket(&packet, SERVER_FIFO);
+		switch(packet.header[2])
+		{
+			case 'R':
+				sendQuery(&packet);	
+				break;
+			case 'P':
+				recordPrime(&packet);			
+				break;
+			default:
+				printf("invalid packet: %.3s%.7s\n", 
+						packet.header, packet.data);
+		}
+	}
 	
-}
+	cleanUp(SERVER_FIFO);
 
+	return 0;
+}
 
