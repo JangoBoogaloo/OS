@@ -2,14 +2,15 @@
 
 static int id = -1;
 static char client_fifo[13];
-static sig_atomic_t isRunning = false;
+static int client_fd = -1;
 
-void handleSigTerm(int sig)
+void handleSignal(int sig)
 {
-
-	printf("terminate program\n");
-	if(SIGINT == sig)
-		isRunning = false;
+	if (SIGPIPE == sig)
+		printf("SIGPIPE received!\n");
+	
+	printf("received Signal\n");
+	cleanUp(client_fd, client_fifo);
 }
 
 void requestPrime()
@@ -17,7 +18,9 @@ void requestPrime()
 	struct PACKET packet;
 	sprintf(packet.header, "!%dR", id);
 	sprintf(packet.data, "?");
-	sendPacket(&packet, SERVER_FIFO);
+	bool isSent = sendPacket(&packet, SERVER_FIFO);
+	if(!isSent)
+		cleanUp(client_fd, client_fifo);
 }
 
 void sendPrime(int number)
@@ -33,8 +36,16 @@ void sendPrime(int number)
 int recvQuery()
 {
 	struct PACKET packet;
+	bool isRcvd= false;
 	printf("Received Query\n");
-	recvPacket(&packet, client_fifo);
+
+	client_fd = open(client_fifo, O_RDONLY);
+	isRcvd = recvPacket(&packet, client_fd);
+	close(client_fd);
+
+	if(!isRcvd)
+		return -1;
+
 	char sender;
 	int number = -1;
 
@@ -79,17 +90,28 @@ int main(int argc, char **argv)
 	id = 0;
 	int ret = -1;
 	int number = -1;
-	isRunning = true;
+	int opt = -1;
 	
-	signal(SIGINT, handleSigTerm);
+	signal(SIGINT, handleSignal);
+	signal(SIGTERM, handleSignal);
+	signal(SIGPIPE, handleSignal);
+
+	if ((opt = getopt(argc, argv, "c:")) == -1 || opt == '?')		
+	{
+		fprintf(stderr, "Usage: %s [-c clientID]\n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	id = atoi(optarg);
 
 	sprintf(client_fifo, "primeclient%d", id);
 	ret = mkfifo(client_fifo, 0666);
 	checkError(ret, "FIFO");
-	
+
+	checkError(client_fd, "OPEN FIFO");
 	printf("Client %d running\n", id);
 
-	while(isRunning)
+	while(true)
 	{
 		sleep(1);
 		requestPrime();
@@ -98,7 +120,7 @@ int main(int argc, char **argv)
 			sendPrime(number);
 	}
 
-	cleanUp(client_fifo);	
+	cleanUp(client_fd, client_fifo);	
 		
 	return 0;
 }

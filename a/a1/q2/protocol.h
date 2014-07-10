@@ -22,10 +22,10 @@ struct PACKET
 
 void checkError(int ret, const char *errorInfo);
 
-void cleanUp(char *fifo);
+void cleanUp(int fd, char *fifo);
 
-void recvPacket(struct PACKET *pPack, char *fifo);
+bool recvPacket(struct PACKET *pPack, int fd);
 
-void sendPacket(struct PACKET *pPack, char *fifo);
+bool sendPacket(struct PACKET *pPack, char* fifo);
 
 #endif

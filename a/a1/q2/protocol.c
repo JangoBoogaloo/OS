@@ -7,26 +7,27 @@ void checkError(int ret, const char *errorInfo)
 	perror(errorInfo);
 }
 
-void cleanUp(char *fifo)
+void cleanUp(int fd, char *fifo)
 {
 	int ret = -1;
+	printf("closing fd\n");
+	ret = close(fd);
+	checkError(ret, "close FD");
+
 	ret = unlink(fifo);
 	checkError(ret, "Unlink FIFO");
+	exit(EXIT_SUCCESS);
 }
 
-void recvPacket(struct PACKET *pPack, char *fifo)
+bool recvPacket(struct PACKET *pPack, int fd)
 {
 	int ret = -1;
 	char buffer[sizeof(struct PACKET)];
-	
-	int fd = open(fifo, O_RDONLY);
-	checkError(fd, "Open Read FIFO");
 
 	ret = read(fd, buffer, sizeof(buffer));
 	checkError(ret, "Read PACKET");
-
-	ret = close(fd);
-	checkError(ret, "Close Read FIFO");
+	if(ret <0)
+		return false;
 	sprintf(pPack->header, "%.3s", buffer);
 	sprintf(pPack->data, "%.7s", &buffer[3]);
 
@@ -34,9 +35,10 @@ void recvPacket(struct PACKET *pPack, char *fifo)
 	strncpy(pPack->data, &buffer[3], 7);
 
 	printf("Recvd Packet: %.3s%.7s\n", pPack->header, pPack->data);
+	return true;
 }
 
-void sendPacket(struct PACKET *pPack, char *fifo)
+bool sendPacket(struct PACKET *pPack, char *fifo)
 {
 	int ret = -1;
 	char buffer[sizeof(struct PACKET)];
@@ -50,10 +52,13 @@ void sendPacket(struct PACKET *pPack, char *fifo)
 
 	int fd = open(fifo, O_WRONLY);
 	checkError(fd, "Open Write FIFO");
+	if(fd <0)
+		return false;
 
 	ret =	write(fd, buffer, sizeof(buffer));
 	checkError(ret, "WRITE PACKET");
 
 	ret = close(fd);
 	checkError(ret, "Close Write FIFO");
+	return true;
 }

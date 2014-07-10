@@ -1,15 +1,16 @@
 #include "protocol.h"
 
 static char client_fifo[13];
+static int server_fd;
 static int maxPrime = -1;
 static int checkNumber = 0;
-static sig_atomic_t isRunning = false;
 
-void handleSigTerm(int sig)
+void handleSignal(int sig)
 {
-	printf("terminate program\n");
-	if(SIGINT == sig)
-		isRunning = false;
+	if (SIGPIPE == sig)
+		printf("SIGPIPE received!\n");
+
+	cleanUp(server_fd, SERVER_FIFO);
 }
 
 void sendQuery(struct PACKET *pPack)
@@ -22,6 +23,7 @@ void sendQuery(struct PACKET *pPack)
 	struct PACKET packet;
 	sprintf(packet.header, "!#Q");
 	sprintf(packet.data, "%d?", checkNumber);
+		
 	sendPacket(&packet, client_fifo);
 }
 
@@ -40,18 +42,23 @@ void recordPrime(struct PACKET *pPack)
 int main(int argc, char **argv)
 {
 
-	isRunning = true;
 	int ret = -1;
 
-	signal(SIGINT, handleSigTerm);
+	signal(SIGINT, handleSignal);
+	signal(SIGTERM, handleSignal);
+	signal(SIGPIPE, handleSignal);
 
 	ret = mkfifo(SERVER_FIFO, 0666);
-	checkError(ret, "FIFO");
+	checkError(ret, "make FIFO");
+
+	server_fd = open(SERVER_FIFO, O_RDWR);
+	checkError(ret, "open FIFO");
+
 	struct PACKET packet;
-	while(isRunning && checkNumber <5000000)
+	while(checkNumber <5000000)
 	{
 		sleep(1);
-		recvPacket(&packet, SERVER_FIFO);
+		recvPacket(&packet, server_fd);
 		switch(packet.header[2])
 		{
 			case 'R':
@@ -66,8 +73,6 @@ int main(int argc, char **argv)
 		}
 	}
 	
-	cleanUp(SERVER_FIFO);
-
+	cleanUp(server_fd, SERVER_FIFO);
 	return 0;
 }
-
