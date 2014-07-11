@@ -11,7 +11,7 @@
 
   NOTES: none
 **********************************************************************/
-#include <ncurses.h>
+#include <curses.h>
 #include <string.h>
 #include <time.h>        /*for nano sleep */
 
