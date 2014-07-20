@@ -1,25 +1,21 @@
-CC = gcc
-CFLAGS = -Wall -g 
-HDRS = protocol.h
-SERVER_OBJS = prime_server.o protocol.o
-CLIENT_OBJS = prime_client.o protocol.o
+CC = clang
+CFLAGS = -Wall -g -I.
+CLIENT_SRC = prime_client.c protocol.c
+CLIENT_OBJS = $(CLIENT_SRC:.c=.o)
 
-all: server client
+SERVER_SRC = prime_server.c protocol.c
+SERVER_OBJS = $(SERVER_SRC:.c=.o)
+TARGETS = server client
+all: $(TARGETS) 
 
 server: $(SERVER_OBJS)
-	$(CC) $(CFLAGS) $(SERVER_OBJS) -o ./server 
+	$(CC) $(CFLAGS) -o $@ $^ 
 
 client: $(CLIENT_OBJS)
-	$(CC) $(CFLAGS) $(CLIENT_OBJS) -o ./client
+	$(CC) $(CFLAGS) -o $@ $^
 
-prime_server.o: prime_server.c $(HDRS)
-	$(CC) $(CFLAGS) -c prime_server.c -o prime_server.o
- 
-prime_client.o: prime_client.c $(HDRS)
-	$(CC) $(CFLAGS) -c prime_client.c -o prime_client.o
-
-protocol.o: protocol.c $(HDRS)
-	$(CC) $(CFLAGS) -c protocol.c -o protocol.o
+%.o: %.c
+	$(CC) -c $(CFLAGS) -o "$@" "$<" 
 
 clean: 
-	rm -f *.o *~ client *~ server 
+	rm -f $(CLIENT_OBJS) $(SERVER_OBJS) $(TARGETS)

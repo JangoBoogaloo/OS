@@ -1,4 +1,4 @@
-CC = gcc
+CC = clang
 CFLAGS = -Wall -g
 PROG = umguo62_q1
 OBJS = umguo62_q1.o
