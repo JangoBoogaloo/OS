@@ -1,5 +1,6 @@
 #!/bin/sh
+./$1 &
 for x in $(seq 0 9); do
-	./client -c $x &
+	./$2 -c $x &
 done
-echo Client Running
+echo Running
