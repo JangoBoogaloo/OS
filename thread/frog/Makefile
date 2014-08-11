@@ -48,4 +48,7 @@ again: clear clean all run
 #./run_tests
 
 install: all
-	install -m 755 $(PROJECT) $(DESTDIR)/usr/local/bin/$(PROJECT)
+	sudo install -m 755 $(PROJECT) $(DESTDIR)/usr/local/bin/$(PROJECT)
+
+uninstall: 
+	sudo rm -f $(DESTDIR)/usr/local/bin/$(PROJECT)
