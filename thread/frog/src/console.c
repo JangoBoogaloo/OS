@@ -1,16 +1,3 @@
-/**********************************************************************
-  Module: console.c
-  Author: Jim Young
-  Date:   2013 Jan 3
-
-  Purpose: see console.h
-
-  Changes: 
-    2013 Jan 3 [ Jim Young ]
-      - initial version
-
-  NOTES: none
-**********************************************************************/
 #include <curses.h>
 #include <string.h>
 #include <time.h>        /*for nano sleep */
@@ -45,28 +32,22 @@ static char *screen[] =
 "",
 "", 
 "" };
-
-static char *wood[] = 
-{
-	"/-------------\\",
-	"|             |",
- "\\-------------/"
-};
-
-static int SCREEN_ROWS = 24; /* must match the template above for proper background drawing */
-
+/* must match the template above for proper background drawing */
+static int SCREEN_ROWS = 24; 
 
 /* Local functions */
-
-static int check_screen_size(int reqHeight, int reqWidth) {
+static int check_screen_size(int reqHeight, int reqWidth) 
+{
 
   // COLS and LINES are provided by curses
-  if ( (reqHeight < SCR_HEIGHT) || (reqWidth < SCR_WIDTH)) {
+  if ( (reqHeight < SCR_HEIGHT) || (reqWidth < SCR_WIDTH)) 
+	{
     fprintf(stderr, "\n\n\rSorry, FROGGER requires a screen resolution of at least %ix%i. \n\rYou requested only %ix%i. Sorry.\n\r",SCR_WIDTH, SCR_HEIGHT, reqWidth, reqHeight);
 	 return (FALSE);
   }
 
-  if ( (reqWidth > COLS) || (reqHeight > LINES) ) {
+  if ( (reqWidth > COLS) || (reqHeight > LINES) ) 
+	{
     fprintf(stderr, "\n\n\rSorry, your window is only %ix%i. \n\rYou requested %ix%i. Sorry.\n\r", COLS, LINES, reqWidth, reqHeight);
     return (FALSE);
   }
@@ -77,9 +58,9 @@ static int check_screen_size(int reqHeight, int reqWidth) {
 /* Initialize curses, draw initial gamescreen. Refreshes screen to terminal.
  Also stores the requested dimensinos of the screen and tests the terminal for the
  given dimensions.*/
-int screen_init(int height, int width) {
+int screen_init(int height, int width) 
+{
     int status;
-
     initscr();
     crmode();
     noecho();
@@ -89,9 +70,9 @@ int screen_init(int height, int width) {
     HEIGHT = height;  WIDTH = width;
     status = check_screen_size(HEIGHT, WIDTH);
         
-    if (status) {
+    if (status) 
+		{
 			screen_draw_image(0, 0, screen, SCREEN_ROWS);
-			screen_draw_image(4, 0, wood, 3);
 			screen_refresh();
 	  }
    
@@ -125,12 +106,14 @@ void screen_draw_image(int row, int col, char *image[], int height)
 	}
 }
 
-void screen_clear_image(int row, int col, int width, int height) {
+void screen_clear_image(int row, int col, int width, int height) 
+{
 	int i, j;
       
 	if (col+width > SCR_RIGHT)
 		width = SCR_RIGHT-col+1;
-	if (col < 0) {
+	if (col < 0) 
+	{
 		width += col; /* -= -col */
 		col = 0;
 	}
@@ -138,7 +121,8 @@ void screen_clear_image(int row, int col, int width, int height) {
 	if (width < 1 || col > SCR_RIGHT) /* nothing to clear */
 		return;
 
-	for (i = 0; i < height; i++) {
+	for (i = 0; i < height; i++) 
+	{
 		if (row+height < 0 || row+height > SCR_BOTTOM)
 			continue;
 		move(row+i, col);
@@ -147,16 +131,19 @@ void screen_clear_image(int row, int col, int width, int height) {
 	}
 }
 
-void screen_refresh(void) {
+void screen_refresh(void) 
+{
     move(LINES-1, COLS-1);
     refresh();
 }
 
-void screen_fini(void) {
+void screen_fini(void) 
+{
     endwin();
 }
 
-void put_banner(const char *str) {
+void put_banner(const char *str) 
+{
   int len;
 
   len = strlen(str);
@@ -167,7 +154,8 @@ void put_banner(const char *str) {
   screen_refresh();
 }
 
-void put_string(char *str, int row, int col, int maxlen) {
+void put_string(char *str, int row, int col, int maxlen) 
+{
 
   move(row, col);
   addnstr(str, maxlen);
@@ -179,7 +167,8 @@ void put_string(char *str, int row, int col, int maxlen) {
 #define TIMESLICE_USEC 20000
 #define USEC_TO_NSEC 1000
 
-void sleep_ticks(int ticks) {
+void sleep_ticks(int ticks) 
+{
   struct timespec rqtp;
 
   if (ticks <= 0)
@@ -196,4 +185,3 @@ void sleep_ticks(int ticks) {
 
   nanosleep(&rqtp, NULL);
 }
-
