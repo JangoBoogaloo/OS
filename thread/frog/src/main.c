@@ -1,7 +1,7 @@
 #define RIVER_TOP_ROW 4
 #define WOOD_HEIGHT 3
 #define WOOD_ROWS 5
-#define DISTANCE 120
+#define DISTANCE 151 
 
 #define WOOD_RIGHT_MOST (SCR_WIDTH)
 #define WOOD_LEFT_MOST (0-WOOD_WIDTH)
@@ -26,7 +26,7 @@ static void sighandler_generic(int n)
   syslog(LOG_WARNING, "PID %d got signal %d, exiting.\n", 
 				 getpid(),  n);
 	screen_fini();
-  exit(-1);
+  exit(n);
 }
 
 static void setup_signals()
@@ -83,7 +83,7 @@ int main(void)
 	for(int i=0; i<WOOD_ROWS; i++)
 	{
 		wood[i].row = 4 + 3 * i;
-		wood[i].speed = 2*(1+(WOOD_ROWS - i));
+		wood[i].speed = 2*(6+(WOOD_ROWS - i));
 		wood[i].direction = direct;
 
 		//keep swapping direction 
