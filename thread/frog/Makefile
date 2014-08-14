@@ -43,10 +43,6 @@ again: clear clean all run
 
 .PHONY: clean clear
 
-#test: $(OBJECTS) $(TEST_OBJECTS)
-#$(CC) $(LDFLAGS) -o run_tests $(OBJECTS) $(TEST_OBJECTS) $(LDLIBS)
-#./run_tests
-
 install: all
 	sudo install -m 755 $(PROJECT) $(DESTDIR)/usr/local/bin/$(PROJECT)
 
