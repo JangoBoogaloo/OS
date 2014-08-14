@@ -4,10 +4,13 @@
 #define WOOD_WIDTH 15
 #define WOOD_HEIGHT 3
 
+#include "general.h"
+
 struct wood_t
 {
 	int row;
 	int col;
+	int direction;
 	int speed;
 };
 

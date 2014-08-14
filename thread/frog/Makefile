@@ -9,7 +9,7 @@ APP_SOURCES := main.c
 
 # Compile
 MYLIBS_CFLAGS := -I. -I/usr/local/include 
-MYLIBS_LIBS := -lncurses 
+MYLIBS_LIBS := -lncurses -lpthread
 CC := clang
 
 CFLAGS := -Wall -pedantic -O3 -g $(MYLIBS_CFLAGS)

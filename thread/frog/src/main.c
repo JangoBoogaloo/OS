@@ -1,5 +1,10 @@
 #define RIVER_TOP_ROW 4
-#define WOOD_ROWS 3
+#define WOOD_HEIGHT 3
+#define WOOD_ROWS 5
+#define DISTANCE 120
+
+#define WOOD_RIGHT_MOST (SCR_WIDTH)
+#define WOOD_LEFT_MOST (0-WOOD_WIDTH)
 
 #include <stdio.h>
 #include <unistd.h>
@@ -15,7 +20,8 @@
 #include "console.h"
 #include "wood.h"
 
-void sighandler_generic(int n)
+static pthread_mutex_t console_mutex;
+static void sighandler_generic(int n)
 {
   syslog(LOG_WARNING, "PID %d got signal %d, exiting.\n", 
 				 getpid(),  n);
@@ -23,7 +29,7 @@ void sighandler_generic(int n)
   exit(-1);
 }
 
-void setup_signals()
+static void setup_signals()
 {
   signal(SIGINT  , sighandler_generic);
   signal(SIGTERM , sighandler_generic);
@@ -37,29 +43,71 @@ void setup_signals()
   signal(SIGPIPE , SIG_IGN);
 }
 
+static void *move_wood(void *wood_p)
+{
+	struct wood_t wood = *(struct wood_t*)wood_p;
+
+	do
+	{
+		pthread_mutex_lock(&console_mutex);
+		screen_clear_image(wood.row, wood.col, 
+											 WOOD_WIDTH, WOOD_HEIGHT);
+		wood.col+= wood.direction;
+		screen_draw_image(wood.row, wood.col, 
+											(char**)WOOD, WOOD_HEIGHT);
+		screen_refresh();
+		pthread_mutex_unlock(&console_mutex);
+		sleep_ticks(DISTANCE/wood.speed);
+	}
+	while(WOOD_RIGHT_MOST >= wood.col && WOOD_LEFT_MOST <= wood.col);
+
+	pthread_exit(NULL);
+}
+
 int main(void) 
 {
-	struct wood_t wood = {0};
-	wood.row = 4;
-	wood.col = 0;
-	wood.speed = 1;
+	pthread_t wood_thread[WOOD_ROWS];
+	struct wood_t wood[WOOD_ROWS];
+	int direct = LEFT;
+
+	setup_signals();
+
 	if (!screen_init(SCR_HEIGHT, SCR_WIDTH)) 
 	{
 		printf("Screen Fail to Initialize\n");
 		APP_EXIT(1);
 	}
 
-	do
-	{
-		screen_clear_image(wood.row, wood.col - WOOD_WIDTH, 
-											 WOOD_WIDTH, WOOD_HEIGHT);
-		wood.col = (wood.col + wood.speed) 
-								% (SCR_WIDTH + WOOD_WIDTH);
-		screen_draw_image(wood.row, wood.col - WOOD_WIDTH, 
-											(char**)WOOD, WOOD_HEIGHT);
-		screen_refresh();
-		sleep_ticks(10);
-	}while(true);
+	pthread_mutex_init(&console_mutex, NULL);
 
-	return 0;
+	for(int i=0; i<WOOD_ROWS; i++)
+	{
+		wood[i].row = 4 + 3 * i;
+		wood[i].speed = 2*(1+(WOOD_ROWS - i));
+		wood[i].direction = direct;
+
+		//keep swapping direction 
+		direct = 0 - direct;
+
+		if (LEFT == wood[i].direction)
+		{
+			wood[i].col = WOOD_RIGHT_MOST;
+		}
+		else
+		{
+			wood[i].col = WOOD_LEFT_MOST;
+		}
+		pthread_create(&wood_thread[i], NULL, 
+									 move_wood, (void *)&wood[i]);
+	}
+
+	for(int i=0; i<WOOD_ROWS; i++)
+	{	
+		pthread_join(wood_thread[i], NULL);
+	}
+
+	pthread_mutex_destroy(&console_mutex);
+	screen_fini();
+	syslog(LOG_WARNING, "End of Processing.\n");
+	pthread_exit(NULL);
 }
