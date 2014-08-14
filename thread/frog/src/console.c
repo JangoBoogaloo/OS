@@ -31,7 +31,9 @@ static char *screen[] =
 "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"",
 "",
 "", 
-"" };
+"" 
+};
+
 /* must match the template above for proper background drawing */
 static int SCREEN_ROWS = 24; 
 
@@ -42,7 +44,9 @@ static int check_screen_size(int reqHeight, int reqWidth)
   // COLS and LINES are provided by curses
   if ( (reqHeight < SCR_HEIGHT) || (reqWidth < SCR_WIDTH)) 
 	{
-    fprintf(stderr, "\n\n\rSorry, FROGGER requires a screen resolution of at least %ix%i. \n\rYou requested only %ix%i. Sorry.\n\r",SCR_WIDTH, SCR_HEIGHT, reqWidth, reqHeight);
+    fprintf(stderr, 
+				"\n\n\rSorry, FROGGER requires a screen resolution of at least %ix%i. \n\rYou requested only %ix%i. Sorry.\n\r",
+				SCR_WIDTH, SCR_HEIGHT, reqWidth, reqHeight);
 	 return (FALSE);
   }
 
