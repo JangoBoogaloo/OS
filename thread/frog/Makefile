@@ -10,9 +10,9 @@ APP_SOURCES := main.c
 # Compile
 MYLIBS_CFLAGS := -I. -I/usr/local/include 
 MYLIBS_LIBS := -lncurses -lpthread
-CC := clang
+CC := clang 
 
-CFLAGS := -Wall -pedantic -O3 -g $(MYLIBS_CFLAGS)
+CFLAGS := -Wall -pedantic -Wextra -Wno-missing-field-initializers -O3 -g $(MYLIBS_CFLAGS)
 LDFLAGS := -g
 LDLIBS := $(MYLIBS_LIBS)
 

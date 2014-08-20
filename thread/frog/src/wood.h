@@ -2,14 +2,15 @@
 #define WOOD_H__
 
 #define WOOD_WIDTH 15
-#define WOOD_HEIGHT 3
+#define WOOD_HEIGHT 2
 
 #include "general.h"
 
 struct wood_t
 {
+	int y;
+	int x;
 	int row;
-	int col;
 	int direction;
 	int speed;
 };
