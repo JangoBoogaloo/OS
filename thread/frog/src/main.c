@@ -62,6 +62,17 @@ static void setup_signals()
   signal(SIGPIPE , SIG_IGN);
 }
 
+static bool in_wood(struct wood_t wood, struct frog_t *frog)
+{
+  if(frog->x >= wood.x && frog->y >= wood.y
+     && frog->x <= (wood.x+WOOD_WIDTH) 
+     && frog->y <= (wood.y+WOOD_HEIGHT))
+  {
+    return true;
+  }
+  return false;
+}
+
 static void *move_wood(void *wood_p)
 {
   char frog_move;
@@ -79,6 +90,15 @@ static void *move_wood(void *wood_p)
 
 	do
 	{
+    // move the frog first
+    pthread_mutex_lock(&frog_mutex);
+    if(in_wood(wood, frog))
+    {
+      move_frog(frog, frog_move);
+    }
+    pthread_mutex_unlock(&frog_mutex);
+
+    // then move the wood
 		pthread_mutex_lock(&console_mutex);
 		screen_clear_image(wood.y, wood.x, 
 											 WOOD_WIDTH, WOOD_HEIGHT);
@@ -87,10 +107,6 @@ static void *move_wood(void *wood_p)
 											(char**)WOOD, WOOD_HEIGHT);
 		screen_refresh();
 		pthread_mutex_unlock(&console_mutex);
-
-    pthread_mutex_lock(&frog_mutex);
-    move_frog(frog, frog_move);
-    pthread_mutex_unlock(&frog_mutex);
 
 		if((SCR_WIDTH/2) == wood.x)
 		{
