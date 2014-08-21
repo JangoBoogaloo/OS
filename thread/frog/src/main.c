@@ -102,7 +102,7 @@ static void *move_wood(void *wood_p)
 		pthread_mutex_lock(&console_mutex);
 		screen_clear_image(wood.y, wood.x, 
 											 WOOD_WIDTH, WOOD_HEIGHT);
-		wood.x += 2*wood.direction;
+		wood.x += wood.direction;
 		screen_draw_image(wood.y, wood.x, 
 											(char**)WOOD, WOOD_HEIGHT);
 		screen_refresh();
@@ -181,7 +181,7 @@ int main(void)
 	int cmd = EOF;
 	frog = MALLOC(sizeof(struct frog_t));
 	frog->x = SCR_WIDTH/2;
-	frog->y= FROG_START_ROW;
+	frog->y= SCR_BOTTOM-3;
 	
 
 	setup_signals();
@@ -194,8 +194,6 @@ int main(void)
 
 	pthread_mutex_init(&console_mutex, NULL);
   pthread_mutex_init(&frog_mutex, NULL);
-
-  init_frog(*frog);
 
 	for(i=0; i<WOOD_ROWS; i++)
 	{
@@ -221,6 +219,7 @@ int main(void)
 									 run_row, (void *)&wood[i]);	
 	}
 
+  init_frog(*frog);
 	do
 	{
 		cmd = getchar();

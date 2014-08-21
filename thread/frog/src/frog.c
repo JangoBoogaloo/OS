@@ -6,13 +6,13 @@
 const char * const FROG[FROG_HEIGHT] = 
 {
 	"@@",
-	"##"
+	"=="
 };
 
 static bool in_bound(const int x, const int y)
 {
 	if(x <= SCR_RIGHT && x >= SCR_LEFT 
-		 && y <= (SCR_BOTTOM-1) && y >= (SCR_TOP+1))
+		 && y <= (SCR_BOTTOM-3) && y >= (SCR_TOP+2))
 	{
 		syslog(LOG_WARNING, "x %d - y %d", x, y);
 		return true;
@@ -44,16 +44,16 @@ void move_frog(struct frog_t *frog, const char dir)
 	switch(dir)
 	{
 		case 'h':
-			frog_x -= 2;
+			frog_x -= 1;
 			break;
 		case 'l':
-			frog_x += 2;
+			frog_x += 1;
 			break;
 		case 'j':
-			frog_y += 2;
+			frog_y += 1;
 			break;
 		case 'k':
-			frog_y -= 2;
+			frog_y -= 1;
 			break;
 		default:
 			move_frog = false;
