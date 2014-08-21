@@ -18,10 +18,11 @@
 #include "wood.h"
 
 //static sig_atomic_t is_running = true;
-
+static struct frog_t *frog;
 static pthread_cond_t row_create_cvs[WOOD_ROWS];
 static pthread_mutex_t row_create_mutex[WOOD_ROWS];
 static pthread_t row_threads[WOOD_ROWS];
+static pthread_mutex_t frog_mutex;
 
 static void cleanup(void)
 {
@@ -63,18 +64,33 @@ static void setup_signals()
 
 static void *move_wood(void *wood_p)
 {
+  char frog_move;
 	/* copy the struct completely, guarantee atomic */
 	struct wood_t wood = *(struct wood_t*)wood_p;
+
+  if(wood.direction > 0)
+  {
+    frog_move = 'l';
+  }
+  else
+  {
+    frog_move = 'h';
+  }
+
 	do
 	{
 		pthread_mutex_lock(&console_mutex);
 		screen_clear_image(wood.y, wood.x, 
 											 WOOD_WIDTH, WOOD_HEIGHT);
-		wood.x += wood.direction;
+		wood.x += 2*wood.direction;
 		screen_draw_image(wood.y, wood.x, 
 											(char**)WOOD, WOOD_HEIGHT);
 		screen_refresh();
 		pthread_mutex_unlock(&console_mutex);
+
+    pthread_mutex_lock(&frog_mutex);
+    move_frog(frog, frog_move);
+    pthread_mutex_unlock(&frog_mutex);
 
 		if((SCR_WIDTH/2) == wood.x)
 		{
@@ -125,11 +141,13 @@ static void *run_row(void *wood_p)
 		pthread_mutex_lock(&row_create_mutex[wood.row]);
 		pthread_create(wood_threads[i], NULL, move_wood,
 									 (void *)&wood);
+
 		if(0 != pthread_cond_wait(&row_create_cvs[wood.row], 
 										          &row_create_mutex[wood.row]))
     {
       APP_EXIT(EXIT_FAILURE);
     }
+
 		pthread_mutex_unlock(&row_create_mutex[wood.row]);
 
 		/* circulate the heap */
@@ -142,7 +160,7 @@ static void *run_row(void *wood_p)
 int main(void) 
 {
 	struct wood_t wood[WOOD_ROWS] = {{0}};
-	struct frog_t *frog = MALLOC(sizeof(struct frog_t));
+	frog = MALLOC(sizeof(struct frog_t));
 
 	frog->x = SCR_WIDTH/2;
 	frog->y= FROG_START_ROW;
@@ -159,6 +177,9 @@ int main(void)
 	}
 
 	pthread_mutex_init(&console_mutex, NULL);
+  pthread_mutex_init(&frog_mutex, NULL);
+
+  init_frog(*frog);
 
 	for(i=0; i<WOOD_ROWS; i++)
 	{
@@ -184,11 +205,14 @@ int main(void)
 									 run_row, (void *)&wood[i]);	
 	}
 
-	draw_frog(*frog, *frog);
 	do
 	{
 		cmd = getchar();
+
+    pthread_mutex_lock(&frog_mutex);
 		move_frog(frog, (char)cmd);
+    pthread_mutex_unlock(&frog_mutex);
+
 		syslog(LOG_WARNING, "Got CMD\n");
 	}while('q' != cmd);
 

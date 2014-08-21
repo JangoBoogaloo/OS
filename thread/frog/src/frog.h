@@ -4,6 +4,8 @@
 #define FROG_HEIGHT 2
 #define FROG_WIDTH 2
 
+#include "general.h"
+
 struct frog_t
 {
 	int y;
@@ -12,7 +14,7 @@ struct frog_t
 	int live;
 };
 
-extern void draw_frog(struct frog_t prev_frog, struct frog_t frog);
+extern void init_frog(struct frog_t frog);
 
 extern void move_frog(struct frog_t *frog, const char dir);
 #endif

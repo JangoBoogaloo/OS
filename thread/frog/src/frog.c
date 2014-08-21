@@ -1,7 +1,6 @@
 #include <stdbool.h>
 
 #include "frog.h"
-#include "general.h"
 #include "console.h"
 
 const char * const FROG[FROG_HEIGHT] = 
@@ -21,7 +20,7 @@ static bool in_bound(const int x, const int y)
 	return false;
 }
 
-void draw_frog(struct frog_t prev_frog, struct frog_t frog)
+static void draw_frog(struct frog_t prev_frog, struct frog_t frog)
 {
 	pthread_mutex_lock(&console_mutex);
 	screen_clear_image(prev_frog.y, prev_frog.x, 
@@ -29,6 +28,11 @@ void draw_frog(struct frog_t prev_frog, struct frog_t frog)
 	screen_draw_image(frog.y, frog.x, 
 										(char**)FROG, FROG_HEIGHT);
 	pthread_mutex_unlock(&console_mutex);
+}
+
+void init_frog(struct frog_t frog)
+{
+  draw_frog(frog, frog);
 }
 
 void move_frog(struct frog_t *frog, const char dir)
