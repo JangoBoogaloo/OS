@@ -10,25 +10,24 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <signal.h>
-#include <syslog.h>
-
-/* pthread function */
-#include <pthread.h>
 
 /* local header */
 #include "general.h"
 #include "console.h"
+#include "frog.h"
 #include "wood.h"
 
-static pthread_mutex_t console_mutex;
+//static sig_atomic_t is_running = true;
+
 static pthread_cond_t row_create_cvs[WOOD_ROWS];
 static pthread_mutex_t row_create_mutex[WOOD_ROWS];
 static pthread_t row_threads[WOOD_ROWS];
 
 static void cleanup(void)
 {
-  /*
+	/*
   int i=0;
+	is_running = false;
 	for(i=0; i<WOOD_ROWS; i++)
 	{	
 		pthread_join(row_threads[i], NULL);
@@ -36,8 +35,7 @@ static void cleanup(void)
     pthread_cond_destroy(&row_create_cvs[i]);
 	}
 	pthread_mutex_destroy(&console_mutex);
-  */
-
+	*/
 	screen_fini();
 }
 
@@ -86,6 +84,7 @@ static void *move_wood(void *wood_p)
 		}
 		sleep_ticks(DISTANCE - wood.speed);
 	}while(WOOD_RIGHT_MOST >= wood.x && WOOD_LEFT_MOST <= wood.x);
+
 	pthread_exit(NULL);
 }
 
@@ -94,30 +93,35 @@ static void *run_row(void *wood_p)
 	/* copy the struct completely, guarantee atomic */
 	struct wood_t wood = *(struct wood_t*)wood_p;
 	pthread_t *wood_threads[MAX_WOOD_HEAP_SIZE];
+
   int i = 0;
-  for(int i=0; i<MAX_WOOD_HEAP_SIZE; i++)
+  for(i=0; i<MAX_WOOD_HEAP_SIZE; i++)
   {
+		// init the thread pointer to NULL
     wood_threads[i] = NULL;
   }
 
   i=0;
 	do
 	{
-    if(NULL == wood_threads[i])
-    {
-      wood_threads[i] = MALLOC(sizeof(pthread_t));
-    }
-    else
+		//wait for used thread to finish and free it
+    if(NULL != wood_threads[i])
     {
       if(0 != pthread_join(*wood_threads[i], NULL))
       {
         APP_EXIT(EXIT_FAILURE);
       }
-      free(wood_threads[i]);
-      /*
+			syslog(LOG_WARNING, "try free\n");
       wood_threads[i] = NULL;
-      */
+			syslog(LOG_WARNING, "free wood thread %d of row %d\n", 
+						 i, wood.row);
     }
+
+		//malloc the thread again
+		wood_threads[i] = MALLOC(sizeof(pthread_t));
+		syslog(LOG_WARNING, 
+					 "Malloc wood thread %d of row %d\n", i, wood.row);
+
 		pthread_mutex_lock(&row_create_mutex[wood.row]);
 		pthread_create(wood_threads[i], NULL, move_wood,
 									 (void *)&wood);
@@ -127,17 +131,24 @@ static void *run_row(void *wood_p)
       APP_EXIT(EXIT_FAILURE);
     }
 		pthread_mutex_unlock(&row_create_mutex[wood.row]);
+
+		/* circulate the heap */
 		i = (i+1)%MAX_WOOD_HEAP_SIZE;
 	} while(true);
+
 	pthread_exit(NULL);
 }
 
 int main(void) 
 {
 	struct wood_t wood[WOOD_ROWS] = {{0}};
+	struct frog_t *frog = MALLOC(sizeof(struct frog_t));
 
+	frog->x = SCR_WIDTH/2;
+	frog->y= FROG_START_ROW;
 	int direct = LEFT;
 	int i = 0;
+	int cmd = EOF;
 
 	setup_signals();
 
@@ -172,6 +183,14 @@ int main(void)
 		pthread_create(&row_threads[i], NULL, 
 									 run_row, (void *)&wood[i]);	
 	}
+
+	draw_frog(*frog, *frog);
+	do
+	{
+		cmd = getchar();
+		move_frog(frog, (char)cmd);
+		syslog(LOG_WARNING, "Got CMD\n");
+	}while('q' != cmd);
 
 	for(i=0; i<WOOD_ROWS; i++)
 	{	

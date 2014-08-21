@@ -3,7 +3,7 @@ RUN_SCRIPT := frog_game
 
 SRC_DIR := src
 OBJ_DIR := obj
-SOURCES := console.c wood.c general.c
+SOURCES := console.c wood.c frog.c general.c
 TEST_SOURCES := 
 APP_SOURCES := main.c
 

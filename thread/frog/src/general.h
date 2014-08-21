@@ -3,6 +3,11 @@
 
 #include <stdlib.h>
 
+/* pthread function */
+#include <pthread.h>
+#include <syslog.h>
+
+extern pthread_mutex_t console_mutex;
 /**
  * App Exit 
  */
