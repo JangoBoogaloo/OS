@@ -41,7 +41,7 @@ static int SCREEN_ROWS = 24;
 static int check_screen_size(int reqHeight, int reqWidth) 
 {
 
-  // COLS and LINES are provided by curses
+  /* COLS and LINES are provided by curses */
   if ( (reqHeight < SCR_HEIGHT) || (reqWidth < SCR_WIDTH)) 
 	{
     fprintf(stderr, 
@@ -70,7 +70,7 @@ int screen_init(int height, int width)
     noecho();
     clear();
 
-		//test screen size
+		/* test screen size */
     HEIGHT = height;  WIDTH = width;
     status = check_screen_size(HEIGHT, WIDTH);
         

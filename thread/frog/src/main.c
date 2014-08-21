@@ -17,7 +17,7 @@
 #include "frog.h"
 #include "wood.h"
 
-//static sig_atomic_t is_running = true;
+/* static sig_atomic_t is_running = true; */
 static struct frog_t *frog;
 static pthread_cond_t row_create_cvs[WOOD_ROWS];
 static pthread_mutex_t row_create_mutex[WOOD_ROWS];
@@ -90,7 +90,7 @@ static void *move_wood(void *wood_p)
 
 	do
 	{
-    // move the frog first
+    /* move the frog first */
     pthread_mutex_lock(&frog_mutex);
     if(in_wood(wood, frog))
     {
@@ -98,7 +98,7 @@ static void *move_wood(void *wood_p)
     }
     pthread_mutex_unlock(&frog_mutex);
 
-    // then move the wood
+    /* then move the wood */
 		pthread_mutex_lock(&console_mutex);
 		screen_clear_image(wood.y, wood.x, 
 											 WOOD_WIDTH, WOOD_HEIGHT);
@@ -129,14 +129,14 @@ static void *run_row(void *wood_p)
   int i = 0;
   for(i=0; i<MAX_WOOD_HEAP_SIZE; i++)
   {
-		// init the thread pointer to NULL
+		/* init the thread pointer to NULL */
     wood_threads[i] = NULL;
   }
 
   i=0;
 	do
 	{
-		//wait for used thread to finish and free it
+		/* wait for used thread to finish and free it */
     if(NULL != wood_threads[i])
     {
       if(0 != pthread_join(*wood_threads[i], NULL))
@@ -149,7 +149,7 @@ static void *run_row(void *wood_p)
 						 i, wood.row);
     }
 
-		//malloc the thread again
+		/* malloc the thread again */
 		wood_threads[i] = MALLOC(sizeof(pthread_t));
 		syslog(LOG_WARNING, 
 					 "Malloc wood thread %d of row %d\n", i, wood.row);
@@ -176,13 +176,13 @@ static void *run_row(void *wood_p)
 int main(void) 
 {
 	struct wood_t wood[WOOD_ROWS] = {{0}};
-	frog = MALLOC(sizeof(struct frog_t));
-
-	frog->x = SCR_WIDTH/2;
-	frog->y= FROG_START_ROW;
-	int direct = LEFT;
+  int direct = LEFT;
 	int i = 0;
 	int cmd = EOF;
+	frog = MALLOC(sizeof(struct frog_t));
+	frog->x = SCR_WIDTH/2;
+	frog->y= FROG_START_ROW;
+	
 
 	setup_signals();
 
@@ -204,7 +204,7 @@ int main(void)
 		wood[i].row = i;
 		wood[i].direction = direct;
 
-		//keep swapping direction 
+		/* keep swapping direction */
 		direct = 0 - direct;
 
 		if (LEFT == wood[i].direction)
