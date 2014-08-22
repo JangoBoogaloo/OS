@@ -64,9 +64,7 @@ static void setup_signals()
 
 static bool in_wood(struct wood_t wood, struct frog_t *frog)
 {
-  if(frog->x >= wood.x && frog->y >= wood.y
-     && frog->x <= (wood.x+WOOD_WIDTH) 
-     && frog->y <= (wood.y+WOOD_HEIGHT))
+  if(frog->x == wood.x && frog->y == wood.y)
   {
     return true;
   }

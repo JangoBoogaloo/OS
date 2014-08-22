@@ -50,10 +50,10 @@ void move_frog(struct frog_t *frog, const char dir)
 			frog_x += 1;
 			break;
 		case 'j':
-			frog_y += 1;
+			frog_y += 2;
 			break;
 		case 'k':
-			frog_y -= 1;
+			frog_y -= 2;
 			break;
 		default:
 			move_frog = false;
