@@ -1,9 +1,14 @@
 SRC := main.c
 PROG := merge_sort
+CFLAGS :=
 LDFLAG :=  #e.g. -lpthread
 
+ifdef DEBUG
+	CFLAGS += -g
+	LDFLAGS += -g
+endif
 all:
-	clang -Wall $(LDFLAG) -o $(PROG) $(SRC)
+	clang -Wall $(CFLAGS) $(LDFLAG) -o $(PROG) $(SRC)
 
 clean:
 	rm -f $(PROG)
