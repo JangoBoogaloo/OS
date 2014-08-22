@@ -22,7 +22,8 @@ static struct frog_t *frog;
 static pthread_cond_t row_create_cvs[WOOD_ROWS];
 static pthread_mutex_t row_create_mutex[WOOD_ROWS];
 static pthread_t row_threads[WOOD_ROWS];
-static pthread_mutex_t frog_mutex;
+static pthread_t console_thread;
+
 
 static void cleanup(void)
 {
@@ -64,11 +65,15 @@ static void setup_signals()
 
 static bool in_wood(struct wood_t wood, struct frog_t *frog)
 {
-  if(frog->x == wood.x && frog->y == wood.y)
+	bool frog_in_wood = false;
+	/* move the frog first */
+	pthread_mutex_lock(&frog_mutex);
+  if(frog->x >= wood.x && frog->x <= (wood.x + WOOD_WIDTH-FROG_WIDTH) && frog->y == wood.y)
   {
-    return true;
+    frog_in_wood = true;
   }
-  return false;
+  pthread_mutex_unlock(&frog_mutex);
+	return frog_in_wood;
 }
 
 static void *move_wood(void *wood_p)
@@ -87,14 +92,7 @@ static void *move_wood(void *wood_p)
   }
 
 	do
-	{
-    /* move the frog first */
-    pthread_mutex_lock(&frog_mutex);
-    if(in_wood(wood, frog))
-    {
-      move_frog(frog, frog_move);
-    }
-    pthread_mutex_unlock(&frog_mutex);
+	{ 
 
     /* then move the wood */
 		pthread_mutex_lock(&console_mutex);
@@ -105,6 +103,11 @@ static void *move_wood(void *wood_p)
 											(char**)WOOD, WOOD_HEIGHT);
 		screen_refresh();
 		pthread_mutex_unlock(&console_mutex);
+
+		if(in_wood(wood, frog))
+    {
+      move_frog(frog, frog_move, true);
+    }
 
 		if((SCR_WIDTH/2) == wood.x)
 		{
@@ -171,6 +174,15 @@ static void *run_row(void *wood_p)
 	pthread_exit(NULL);
 }
 
+static void *refresh_screen()
+{
+	while(true)
+	{
+		blink_frog(*frog, 10);
+	}
+	pthread_exit(NULL);
+}
+
 int main(void) 
 {
 	struct wood_t wood[WOOD_ROWS] = {{0}};
@@ -181,7 +193,6 @@ int main(void)
 	frog->x = SCR_WIDTH/2;
 	frog->y= SCR_BOTTOM-3;
 	
-
 	setup_signals();
 
 	if (!screen_init(SCR_HEIGHT, SCR_WIDTH)) 
@@ -189,9 +200,10 @@ int main(void)
 		printf("Screen Fail to Initialize\n");
 		APP_EXIT(1);
 	}
-
 	pthread_mutex_init(&console_mutex, NULL);
   pthread_mutex_init(&frog_mutex, NULL);
+
+	pthread_create(&console_thread, NULL, refresh_screen, NULL);
 
 	for(i=0; i<WOOD_ROWS; i++)
 	{
@@ -221,11 +233,7 @@ int main(void)
 	do
 	{
 		cmd = getchar();
-
-    pthread_mutex_lock(&frog_mutex);
-		move_frog(frog, (char)cmd);
-    pthread_mutex_unlock(&frog_mutex);
-
+		move_frog(frog, (char)cmd, false);
 		syslog(LOG_WARNING, "Got CMD\n");
 	}while('q' != cmd);
 
