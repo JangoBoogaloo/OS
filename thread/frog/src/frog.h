@@ -18,7 +18,7 @@ extern pthread_mutex_t frog_mutex;
 
 extern void init_frog(struct frog_t frog);
 
-extern void blink_frog(struct frog_t frog, int flash_wait);
+extern void blink_frog(struct frog_t *frog, int flash_wait);
 
 extern void 
 move_frog(struct frog_t *frog, const char dir, bool is_wood);

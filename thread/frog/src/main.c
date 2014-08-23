@@ -178,7 +178,7 @@ static void *refresh_screen()
 {
 	while(true)
 	{
-		blink_frog(*frog, 10);
+		blink_frog(frog, 10);
 	}
 	pthread_exit(NULL);
 }

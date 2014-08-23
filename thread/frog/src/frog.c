@@ -29,26 +29,26 @@ static bool in_bound(const int x, const int y)
 	return false;
 }
 
-void blink_frog(struct frog_t frog, int flash_wait)
+void blink_frog(struct frog_t *frog, const int flash_wait)
 {
-	/* draw frog open eye */
+	/* draw frog close eye */
 	pthread_mutex_lock(&frog_mutex);
 	pthread_mutex_lock(&console_mutex);
-	screen_clear_image(frog.y, frog.x, 
+	screen_clear_image(frog->y, frog->x, 
 									 	 FROG_WIDTH, FROG_HEIGHT);
-	screen_draw_image(frog.y, frog.x, 
-										(char**)FROG, FROG_HEIGHT);
+	screen_draw_image(frog->y, frog->x, 
+										(char**)FROG_CLOSE, FROG_HEIGHT);
 	pthread_mutex_unlock(&console_mutex);
 	pthread_mutex_unlock(&frog_mutex);
 	sleep_ticks(flash_wait);
 
-	/* draw frog close eye */
-	pthread_mutex_lock(&frog_mutex);
+	/* draw frog open eye */
+	pthread_mutex_lock(&frog_mutex); 
 	pthread_mutex_lock(&console_mutex);
-	screen_clear_image(frog.y, frog.x, 
+	screen_clear_image(frog->y, frog->x, 
 									 	 FROG_WIDTH, FROG_HEIGHT);
-	screen_draw_image(frog.y, frog.x, 
-										(char**)FROG_CLOSE, FROG_HEIGHT);
+	screen_draw_image(frog->y, frog->x, 
+										(char**)FROG, FROG_HEIGHT);
 	pthread_mutex_unlock(&console_mutex);
 	pthread_mutex_unlock(&frog_mutex);
 	sleep_ticks(flash_wait);
