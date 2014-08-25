@@ -16,7 +16,7 @@ struct frog_t
 
 extern pthread_mutex_t frog_mutex;
 
-extern void init_frog(struct frog_t frog);
+extern void init_frog(struct frog_t *frog);
 
 extern void blink_frog(struct frog_t *frog, int flash_wait);
 

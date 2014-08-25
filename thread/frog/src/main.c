@@ -229,7 +229,7 @@ int main(void)
 									 run_row, (void *)&wood[i]);	
 	}
 
-  init_frog(*frog);
+  init_frog(frog);
 	do
 	{
 		cmd = getchar();

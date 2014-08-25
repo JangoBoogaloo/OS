@@ -9,7 +9,7 @@ pthread_mutex_t frog_mutex;
 const char * const FROG[FROG_HEIGHT] = 
 {
 	"@@",
-	"=="
+	"><"
 };
 
 const char * const FROG_CLOSE[FROG_HEIGHT] = 
@@ -54,20 +54,20 @@ void blink_frog(struct frog_t *frog, const int flash_wait)
 	sleep_ticks(flash_wait);
 }
 
-static void draw_frog(struct frog_t prev_frog, struct frog_t frog)
+static void draw_frog(struct frog_t prev_frog, struct frog_t *frog)
 {
 	pthread_mutex_lock(&console_mutex);
 	screen_clear_image(prev_frog.y, prev_frog.x, 
 									 	 FROG_WIDTH, FROG_HEIGHT);
-	screen_draw_image(frog.y, frog.x, 
+	screen_draw_image(frog->y, frog->x, 
 										(char**)FROG, FROG_HEIGHT);
 	pthread_mutex_unlock(&console_mutex);
 }
 
-void init_frog(struct frog_t frog)
+void init_frog(struct frog_t *frog)
 {
 	pthread_mutex_lock(&frog_mutex);
-  draw_frog(frog, frog);
+  draw_frog(*frog, frog);
 	pthread_mutex_unlock(&frog_mutex);
 }
 
@@ -106,14 +106,13 @@ void move_frog(struct frog_t *frog, const char dir, bool is_wood)
 	{
 		frog->x = frog_x;
 		frog->y = frog_y;
-
 		if(!is_wood)
 		{
-			draw_frog(prev_frog, *frog);
+			draw_frog(prev_frog, frog);
 		}
 		else
 		{
-			draw_frog(*frog, *frog);
+			draw_frog(*frog, frog);
 		}
 	}
 
