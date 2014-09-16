@@ -36,14 +36,53 @@ static void select_sort(int array[], const int size)
 	}
 }
 
-static void merge(int array1[], const int array2[], const int size)
+static void merge(int array1[], int array2[], const int size_1, const int size_2)
 {
+	int size_3 = size_1 + size_2;
+	int array3[size_3];
+	int index_1 = 0;
+	int index_2 = 0; 
+	int index_3 = 0;
 
+	for(index_3 =0; index_3 < size_3; index_3++)
+	{
+		if(index_1 >= size_1)
+		{
+			array3[index_3] = array2[index_2];
+			index_2++;
+			continue;
+		}
+
+		if(index_2 >= size_2)
+		{
+			array3[index_3] = array1[index_1];
+			index_1++;
+			continue;
+		}
+
+		if(array1[index_1] < array2[index_2])
+		{
+			array3[index_3] = array1[index_1];
+			index_1++;
+		}
+		else
+		{
+			array3[index_3] = array2[index_2];
+			index_2++;
+		}
+	}
+
+	for(index_3 = 0; index_3 < size_3; index_3++)
+	{
+		array1[index_3] = array3[index_3];
+	}
 }
 
 static void merge_sort(int array[], int size, int base_size)
 {
 	int mid = -1;
+	int size_1 = -1;
+	int size_2 = -1;
 
 	if(size <= base_size)
 	{
@@ -52,14 +91,22 @@ static void merge_sort(int array[], int size, int base_size)
 	}
 
 	mid = size/2;
-	merge_sort(array+mid, size/2, base_size);
-	merge_sort(array, size/2, base_size);
-	merge(array, array+mid, size/2);
+	size_1 = size/2;
+	size_2 = size/2;
+
+	if(0 != size%2)
+	{
+		size_2++;
+	}
+
+	merge_sort(array, size_1, base_size);
+	merge_sort(array+mid, size_2, base_size);
+	merge(array, array+mid, size_1, size_2);
 }
 
 int main(int argc, char **argv)
 {
-	int size = 10;
+	int size = 100000;
 	int array[size];
 	int i = -1;
 
@@ -68,7 +115,7 @@ int main(int argc, char **argv)
 		array[i] = size -i;
 	}
 
-	merge_sort(array, size, 100);
+	merge_sort(array, size, 1000);
 	print_array(array, size);
 
 	(void) argc;
