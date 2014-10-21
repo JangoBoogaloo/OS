@@ -1,13 +1,7 @@
 /**********************************************************************
   Module: console.h
-  Author: Jim Young
-  Date:   2013 Jan 3
 
   Purpose: Draw 2d images on the screen.  Also, draw main game image.
-
-  Changes: 
-    2013 Jan 3 [ Jim Young ]
-      - initial version (modified from version from Jim Uhl)
 
   NOTES: none of these functions are re-entrant (they are not thread
 	 		safe)
