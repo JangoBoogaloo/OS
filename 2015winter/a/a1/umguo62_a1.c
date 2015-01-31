@@ -32,6 +32,8 @@ typedef int BOOLEAN;
 // a macro to compare two strings for equality
 #define equals(s1,s2) strcmp((s1),(s2)) == 0
 
+#define SEPERATION " "
+
 int cmd_count = 1;      // print command count with prompt
 
 // global declarations for command line arguments
@@ -44,9 +46,10 @@ char *cmdline_args[MAXARGS];
    Remove any leading whitespace.
    Returns: 
      1) the entered command
-     2) length of the command (in reference parameter len)
+     2) p_length of the command (in reference parameter p_len)
 */
-char *get_cmd(int *len){
+char *get_cmd(int *p_len)
+{
   char *cmd = NULL;
   printf("%d%% ", cmd_count);
   cmd = fgets(buffer, BUFSIZE, stdin);
@@ -61,43 +64,141 @@ char *get_cmd(int *len){
       cmd++;
 		}
 
-    *len = strlen(cmd);
+    *p_len = strlen(cmd);
   }
   return cmd;
-}//get_cmd
+}
 
-int main(int argc, char *argv[]){
 
-  int i, pid;
-  int ret_code;
-  int len;
-  char *the_cmd;    // pointer to a command
-  
+int check_wildcard(char *arguments[], 
+									 int arg_count,
+									 glob_t *p_glob)
+{
+	int hasWild = FALSE;
+	p_glob->gl_offs = 0;
+	for(int i=0; i<arg_count; i++)
+	{
+		printf("  GET in Outer loop\n");
+		for(int j=0; '\0'!=arguments[i][j]; j++)
+		{
+
+			printf("  	GET in Inner loop\n");
+			if('?' == arguments[i][j] || 
+				 '*' == arguments[i][j] || 
+				 '[' == arguments[i][j])
+			{
+				printf("Has wild\n");
+				hasWild = TRUE;
+				int a = -1;
+				if(0 != p_glob->gl_offs)
+				{ // append additional wildcard
+					a = glob(arguments[i], GLOB_DOOFFS | GLOB_APPEND, NULL, p_glob);
+					printf("%d\n", a);
+				}
+				else	
+				{ // first wild card
+					p_glob->gl_offs = i;
+					a = glob(arguments[i], GLOB_DOOFFS, NULL, p_glob);
+					printf("%d\n", a);
+					//assign all previous non-wildcard variable
+					for(int k=0; k<i; i++)
+					{
+						p_glob->gl_pathv[k] = arguments[k];
+					}
+				}
+				
+			}
+			printf("    no wild\n");
+		}
+		printf("  Outer loop\n");
+	}
+
+	printf("Done\n");
+	return hasWild;
+}
+
+int main(int argc, char *argv[])
+{
+
+  int i = -1;
+	int pid = -1;
+  int ret_code = -1;
+  int len = -1;
+  char *the_cmd = NULL;    // pointer to a command
+	char home_dir[81] = {'\0'};
+	char *arguments[MAXARGS];
+	char *brkt = NULL;
+
+	//preprocess, get process home directory
+	if (getcwd(home_dir, sizeof(home_dir)) == NULL)
+	{
+		printf("Error executing getcwd\n");
+	}
+
   the_cmd = get_cmd(&len);
   while(!feof(stdin))
 	{
     if(len > 0)
 		{  // a non-empty command was entered
 			cmd_count++;
+
 			pid = fork();
       if(pid)
 			{  // parent process
+				//wait for child process to finish
         wait(NULL);
       }
 			else
 			{  // child process - execute the command
-        ret_code = execl(the_cmd, the_cmd, NULL);
+				i=0;
+
+				//parsing command arguments
+				for(arguments[i] = strtok_r(the_cmd, SEPERATION, &brkt);
+						arguments[i]; 
+						arguments[i] = strtok_r(NULL, SEPERATION, &brkt))
+				{
+					printf("%s\n", arguments[i++]);
+				}
+
+				if(equals(arguments[0], "cd"))
+				{
+					if('\0' == arguments[1])
+					{//arguments[1] empty, go to home directory
+						ret_code = chdir(home_dir);
+					}
+					else
+					{
+						ret_code = chdir(arguments[1]);
+					}
+				}
+				else
+				{
+					glob_t g = {0};
+					printf("Whats going on\n");
+					if(check_wildcard(arguments, MAXARGS, &g))
+					{
+						printf("Have wild\n");
+						ret_code = execvp(arguments[0], g.gl_pathv);
+					}
+					else
+					{
+						printf("Sholld be here\n");
+        		ret_code = execvp(the_cmd, arguments);
+					}
+				}
+
         if(ret_code != 0)
 				{
           printf("error executing %s.\n", the_cmd);
-          exit(TRUE);  // indicate that cmd failed
+        	exit(TRUE);  // indicate that cmd failed
         }
-			}// end else
-		}// if(len > 0)
+			}
+
+		}
 
     the_cmd = get_cmd(&len);
-  }// while
+  }
 
   printf("\nEnd of processing\n");
   return 0;
-} /* end main */
+} 
