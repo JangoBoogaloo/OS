@@ -69,51 +69,40 @@ char *get_cmd(int *p_len)
   return cmd;
 }
 
-
 int check_wildcard(char *arguments[], 
 									 int arg_count,
 									 glob_t *p_glob)
 {
 	int hasWild = FALSE;
 	p_glob->gl_offs = 0;
-	for(int i=0; i<arg_count; i++)
+
+	for(int i=0; i<arg_count && NULL !=arguments[i]; i++)
 	{
-		printf("  GET in Outer loop\n");
 		for(int j=0; '\0'!=arguments[i][j]; j++)
 		{
-
-			printf("  	GET in Inner loop\n");
 			if('?' == arguments[i][j] || 
 				 '*' == arguments[i][j] || 
 				 '[' == arguments[i][j])
 			{
-				printf("Has wild\n");
 				hasWild = TRUE;
-				int a = -1;
 				if(0 != p_glob->gl_offs)
 				{ // append additional wildcard
-					a = glob(arguments[i], GLOB_DOOFFS | GLOB_APPEND, NULL, p_glob);
-					printf("%d\n", a);
+					glob(arguments[i], GLOB_DOOFFS | GLOB_APPEND, NULL, p_glob);
 				}
 				else	
 				{ // first wild card
 					p_glob->gl_offs = i;
-					a = glob(arguments[i], GLOB_DOOFFS, NULL, p_glob);
-					printf("%d\n", a);
+					glob(arguments[i], GLOB_DOOFFS, NULL, p_glob);
 					//assign all previous non-wildcard variable
-					for(int k=0; k<i; i++)
+					for(int k=0; k<i; k++)
 					{
 						p_glob->gl_pathv[k] = arguments[k];
 					}
 				}
 				
 			}
-			printf("    no wild\n");
 		}
-		printf("  Outer loop\n");
 	}
-
-	printf("Done\n");
 	return hasWild;
 }
 
@@ -126,7 +115,7 @@ int main(int argc, char *argv[])
   int len = -1;
   char *the_cmd = NULL;    // pointer to a command
 	char home_dir[81] = {'\0'};
-	char *arguments[MAXARGS];
+	char *arguments[MAXARGS]= {NULL};
 	char *brkt = NULL;
 
 	//preprocess, get process home directory
@@ -155,10 +144,7 @@ int main(int argc, char *argv[])
 				//parsing command arguments
 				for(arguments[i] = strtok_r(the_cmd, SEPERATION, &brkt);
 						arguments[i]; 
-						arguments[i] = strtok_r(NULL, SEPERATION, &brkt))
-				{
-					printf("%s\n", arguments[i++]);
-				}
+						arguments[++i] = strtok_r(NULL, SEPERATION, &brkt));
 
 				if(equals(arguments[0], "cd"))
 				{
@@ -174,15 +160,12 @@ int main(int argc, char *argv[])
 				else
 				{
 					glob_t g = {0};
-					printf("Whats going on\n");
 					if(check_wildcard(arguments, MAXARGS, &g))
 					{
-						printf("Have wild\n");
 						ret_code = execvp(arguments[0], g.gl_pathv);
 					}
 					else
 					{
-						printf("Sholld be here\n");
         		ret_code = execvp(the_cmd, arguments);
 					}
 				}
