@@ -1,12 +1,3 @@
-/*
-	shell.c
-	COMP 3430 Operating Systems
-	Lab 1
-	
-	Simple shell program.
-	
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
