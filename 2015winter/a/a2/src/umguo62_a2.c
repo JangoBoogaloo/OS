@@ -50,39 +50,44 @@ typedef unsigned long ulong;
 */
 
 
-void *consumer_thread(void *arg){
-
+void *consumer_thread(void *arg)
+{
 
    pthread_exit(NULL);
 } // end consumer_thread
 
-int main (int argc, char * argv[]){
-
+int main (int argc, char * argv[])
+{
    pthread_t tids[MAX_THREADS];
    char line[INPUT_SIZE];
-   int num_threads, rc, t, tnum;
+   int num_threads;
+	 int rc;
+	 int t;
+	 int tnum;
    FILE *inputfile;
    ulong word_total = 0;
    ulong char_total = 0;
 
    // argument checking
-   if(argc < 3){
+   if(argc < 3)
+	 {
       printf("Usage: %s num_threads <input file>\n", argv[0]);
       exit(0);
-   }else
+   }
+	 else
+	 {
       num_threads = atoi(argv[1]);
+	 }
 
    // open the input file
    inputfile = fopen(argv[2], "r");
-   if(inputfile == NULL){
+   if(inputfile == NULL)
+	 {
       printf("Unable to open %s\n", argv[2]);
       exit(0);
    }
 
-
-
    fclose(inputfile);
-
 
    printf("End of processing\n");
    pthread_exit(NULL);

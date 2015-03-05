@@ -1,4 +1,5 @@
 PROJECT :=app
+SCRIPT :=$(PROJECT) #add arguments
 
 #set the compiler option
 CFLAGS :=-Wall \
@@ -20,13 +21,16 @@ SOURCE_DIR :=src/
 SOURCES :=$(wildcard $(SOURCE_DIR)*.c) 
 OBJECTS :=$(SOURCES:$(SOURCE_DIR)%.c=$(OBJECT_DIR)%.o)
 
-all: $(PROJECT) $(OBJECTS)
-
 $(PROJECT): $(OBJECTS)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(PROJECT) $(OBJECTS) $(LD_LIBS)
 
 $(OBJECT_DIR)%.o: $(SOURCE_DIR)%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+all: $(PROJECT) $(OBJECTS)
+
+run: all
+	./$(SCRIPT)
+
 clean:
-		rm -rf $(OBJECT_DIR)*.o $(PROJECT)
+		rm -f $(OBJECT_DIR)*.o $(PROJECT)
