@@ -1,5 +1,5 @@
-PROJECT :=app
-SCRIPT :=$(PROJECT) #add arguments
+PROJECT :=umguo62_a2
+SCRIPT :=$(PROJECT) 10 1216.txt #add arguments
 
 #set the compiler option
 CFLAGS :=-Wall \
