@@ -8,7 +8,7 @@ CFLAGS :=-Wall \
 				 -Wno-missing-field-initializers \
 				 -g
 
-CC :=gcc 
+CC :=clang
 
 #header include
 INCLUDES := -I.#\ 

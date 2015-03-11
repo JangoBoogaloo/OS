@@ -30,7 +30,7 @@
 #define DELIMS " \t\n"
 #define EXIT_MSG "<QUIT>"
 
-static char *buffers[BUF_SIZE] = {NULL};
+static char * buffers[BUF_SIZE] = {NULL};
 static int consume_index = 0;
 
 typedef unsigned long ulong;
@@ -54,56 +54,101 @@ typedef unsigned long ulong;
 */
 
 static pthread_mutex_t buffer_mutex;
+static pthread_mutex_t total_chars_mutex;
+static pthread_mutex_t total_words_mutex;
+
 static pthread_cond_t cond_empty;
 static pthread_cond_t cond_full;
+
 static int stored_count = 0;
 
-void *consume(void *arg)
+static ulong word_total = 0;
+static ulong char_total = 0;
+
+static int calculateTotalChars(const char *buffer, const int size)
 {
+	int i=-1;
+	for(i=0; i<size; i++)
+	{
+		if( '\0' == buffer[i]) break;
+	}
+	return i+1;
+}
+
+static int calculateTotalWords(const char *buffer, const char *deliminate)
+{
+	int total_word = 0;
+	char *brkt = NULL;
+	char *word = NULL;
+
+	for(word = strtok_r((char *)buffer, deliminate, &brkt); word; 
+			word = strtok_r(NULL, deliminate, &brkt))
+	{
+		total_word++;
+	}
+
+	return total_word;
+}
+
+static void *consume()
+{
+	unsigned int total_chars = -1;
+	unsigned int total_wrds = -1;
 	bool isFinished = false;
+	char *buffer_copy = NULL;
 	while(!isFinished)
 	{
-		char *buffer_copy = NULL;
 
 		pthread_mutex_lock(&buffer_mutex);
 
 		while(stored_count ==0)
 		{
-			printf("consume wait\n");
 			pthread_cond_wait(&cond_empty, &buffer_mutex);
 		}
+
 		stored_count--;
 		pthread_cond_signal(&cond_full);
 
 		buffer_copy = strdup(buffers[consume_index]);
-		printf("C: %d-%s\n", consume_index, buffer_copy);
 		free(buffers[consume_index]);
 		buffers[consume_index] = NULL;
 		consume_index++;
 		consume_index %= BUF_SIZE;
 		pthread_mutex_unlock(&buffer_mutex);
-		if(0==strcmp(buffer_copy, EXIT_MSG))
+
+		if(0 != strcmp(buffer_copy, EXIT_MSG))
+		{
+			total_chars = calculateTotalChars(buffer_copy, INPUT_SIZE);
+			total_wrds = calculateTotalWords(buffer_copy, DELIMS);
+
+			pthread_mutex_lock(&total_chars_mutex);
+			char_total += total_chars;
+			pthread_mutex_unlock(&total_chars_mutex);
+
+			pthread_mutex_lock(&total_words_mutex);
+			word_total += total_wrds;
+			pthread_mutex_unlock(&total_words_mutex);
+		}
+		else
 		{
 			isFinished = true;
 		}
+
 		free(buffer_copy);
 		buffer_copy = NULL;
 	}
 	pthread_exit(NULL);
 } 
 
-void produce(const char *buffer, int buf_index)
+static void produce(const char *buffer, const int buf_index)
 {
 		pthread_mutex_lock(&buffer_mutex);
 		while(stored_count == BUF_SIZE)
 		{
-			printf("produce wait\n");
 			pthread_cond_wait(&cond_full, &buffer_mutex);
 		}
-
 		buffers[buf_index] = strdup(buffer);
 		stored_count++;
-		printf("P-%d: %s\n", buf_index, buffers[buf_index]);
 
 		pthread_cond_signal(&cond_empty);
 
@@ -113,18 +158,9 @@ void produce(const char *buffer, int buf_index)
 int main (int argc, char * argv[])
 {
 	pthread_t consumer_threads[MAX_THREADS] = {0};
-	
-	pthread_cond_init(&cond_empty, NULL);
-	pthread_cond_init(&cond_full, NULL);
-
 	char line[INPUT_SIZE] = {'\0'};
 	int num_threads = -1;
-	int rc = -1;
-	int t = -1;
-	int tnum = -1;
 	FILE *inputfile = NULL;
-	ulong word_total = 0;
-	ulong char_total = 0;
 
 	// argument checking
 	if(argc < 3)
@@ -135,8 +171,19 @@ int main (int argc, char * argv[])
 	else
 	{
 		num_threads = atoi(argv[1]);
+		if(num_threads > MAX_THREADS)
+		{
+			printf("Usage: the program can create at most %d threads\n", MAX_THREADS);
+			exit(0);
+		}
+
 	}
 
+	bool finish_reading = false;
+	int thread_exit_count = 0;
+	int i=-1;
+
+	printf("start processing\n");
 	// open the input file
 	inputfile = fopen(argv[2], "r");
 	if(inputfile == NULL)
@@ -145,53 +192,70 @@ int main (int argc, char * argv[])
 		exit(0);
 	}
 
-	rc = pthread_mutex_init(&buffer_mutex, NULL);
-	if(0 != rc) printf("Fail to Destroy Mutex\n");
+	/* create condition variable to handle buffer empty and buffer full */
+	pthread_cond_init(&cond_empty, NULL);
+	pthread_cond_init(&cond_full, NULL);
 
-	int i=0;
-	for(i=0; i<MAX_THREADS; i++)
+	pthread_mutex_init(&buffer_mutex, NULL);
+	pthread_mutex_init(&total_chars_mutex, NULL);
+	pthread_mutex_init(&total_words_mutex, NULL);
+
+	finish_reading = false;
+	thread_exit_count = 0;
+	for(i=0; i<num_threads; i++)
 	{
 		pthread_create(&consumer_threads[i], NULL, consume, NULL);
 	}
 
-
-	bool finish_loading = false;
-	int exit_count = 0;
 	i=0;
-	while(BUF_SIZE != exit_count)
+	while(BUF_SIZE != thread_exit_count)
 	{
-		if(finish_loading)
+		if(finish_reading)
 		{
+			/* send exit message to buffer to end thread */
 			produce(EXIT_MSG, i);
-			++exit_count;
-		}
-		else if(!fgets(line, sizeof(line), inputfile))
+			++thread_exit_count;
+		} 
+		else if(!fgets(line, INPUT_SIZE, inputfile))
 		{
-			finish_loading = true;
-			printf("Done loading\n");
+			/* finished reading file */
+			finish_reading = true;
+			printf("Done Reading File\n");
 			continue;
 		}
 		else
 		{
+			/* produce one line of string to buffers */
 			produce(line, i);
-			memset(line, 0, sizeof(line));
+			/* clean line */
+			memset(line, '\0', sizeof(line));
 		}
 
 		i++;
 		i %= BUF_SIZE;
 	}
 
-	for(i=0; i<MAX_THREADS; i++)
+	for(i=0; i<num_threads; i++)
 	{
-		rc = pthread_join(consumer_threads[i], NULL);
-		if(0 != rc) printf("Fail to join consumer thread\n");
+		pthread_join(consumer_threads[i], NULL);
 	}
-
 	pthread_cond_destroy(&cond_empty);
 	pthread_cond_destroy(&cond_full);
 	pthread_mutex_destroy(&buffer_mutex);
+	pthread_mutex_destroy(&total_chars_mutex);
+	pthread_mutex_destroy(&total_words_mutex);
+
 	fclose(inputfile);
 
+	printf("Tatal Characters: %lu\n", char_total);
+	printf("Tatal Words: %lu\n", word_total);
+
+	char_total = 0;
+	word_total = 0;
+	stored_count =0;
+	consume_index = 0;
+
 	printf("End of processing\n");
+
 	return 0;
 }
