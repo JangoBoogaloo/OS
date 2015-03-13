@@ -13,8 +13,8 @@
 #include <stdlib.h>
 
 static void catch_signal(int the_signal ) {
-  signal(the_signal,catch_signal);
-  system("date");
+	printf("First time catch SIGQUIT\n");
+	signal(the_signal,SIG_DFL);
 } 
 
 int main ( void ) {
@@ -22,11 +22,11 @@ int main ( void ) {
 
   printf("This is process %d looping forever\n", (int)getpid());
   
-  if (signal(SIGUSR1,catch_signal)==SIG_ERR) {
-    perror("SIGUSR1 handler could not be setup");
+  if (signal(SIGQUIT,catch_signal)==SIG_ERR) {
+    perror("SIGQUIT handler could not be setup");
     exit(1);
   }
-  
+
   for (i=0;;i++) {
     printf("%d\n",i); 
 		sleep(5); //sleep 5 seconds
