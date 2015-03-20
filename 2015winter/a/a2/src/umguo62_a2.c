@@ -106,14 +106,14 @@ static void *consume()
 			pthread_cond_wait(&cond_empty, &buffer_mutex);
 		}
 
-		stored_count--;
-		pthread_cond_signal(&cond_full);
-
 		buffer_copy = strdup(buffers[consume_index]);
 		free(buffers[consume_index]);
 		buffers[consume_index] = NULL;
 		consume_index++;
 		consume_index %= BUF_SIZE;
+		stored_count--;
+
+		pthread_cond_signal(&cond_full);
 		pthread_mutex_unlock(&buffer_mutex);
 
 		if(0 != strcmp(buffer_copy, EXIT_MSG))
